@@ -1,5 +1,7 @@
+* import comments analyzed for sentiment;
 proc import datafile = "C:\Users\mcraft\Desktop\CMN\DDBB_sent_emo (2).csv"
 out = sent_emo dbms = csv replace; run;
+* create a file with renamed videos for the two-part model;
 data twopart;
 	set sent_emo;
 	Subject = .;
@@ -34,55 +36,57 @@ data twopart;
 	else if Video = "BlaseyonFox" then Subject = 29;
 	else if Video = "ASMR" then Subject = 30;
 run;
+* likes are skewed, so take the log of the likes + 1;
 data twopart;
 	set twopart;
 	loglikes = .;
 	loglikes = log(likes + 1);
 	logloglikes = log(loglikes + 1);
 run;
-*Unconditional model;
+* determine whether a multilevel model is necessary--unconditional multilevel model;
 proc mixed data = new_sent_emo;
 	class Subject;
 	model likes = /s;
 	random int / subject = Subject type = un;
 run;
-*Simple MLM-Sentiment;
+** explore effects of covariates;
+* simple MLM-Sentiment;
 proc mixed data=sent_emo;
 	class Video;
 	model likes = sent_score / s;
 	random int / subject=Video type=un;
 run;
-*Simple MLM-Sadness;
+* simple MLM-Sadness;
 proc mixed data=sent_emo;
 	class Video;
 	model likes = sadness / s;
 	random int / subject=Video type=un;
 run;
-*Simple MLM-Joy;
+* simple MLM-Joy;
 proc mixed data=sent_emo;
 	class Video;
 	model likes = joy / s;
 	random int / subject=Video type=un;
 run;
-*Simple MLM-Fear;
+* simple MLM-Fear;
 proc mixed data=sent_emo;
 	class Video;
 	model likes = fear / s;
 	random int / subject=Video type=un;
 run;
-*Simple MLM-Disgust;
+* simple MLM-Disgust;
 proc mixed data=sent_emo;
 	class Video;
 	model likes = disgust / s;
 	random int / subject=Video type=un;
 run;
-*Simple MLM-Anger;
+* simple MLM-Anger;
 proc mixed data=sent_emo;
 	class Video;
 	model likes = anger / s;
 	random int / subject=Video type=un;
 run;
-*Create subset and plot zero-inflated Poisson data;
+* create subset and plot zero-inflated Poisson data;
 data subvideos;
 	set twopart;
 	where Video = "Nike" or Video = "Statue" or Video = "Venezuela"
@@ -100,8 +104,6 @@ proc sgpanel data = subvideos;
 	vbar logloglikes;
 	colaxis label = "YouTube Comment Like Counts" Fitpolicy = thin;
 run;
-
-
 title 'Single Histogram Logged Likes for Nike';
 proc sgplot data = twopart;
 	where Video = "Nike";
@@ -114,7 +116,7 @@ proc sgpanel data = subvideos;
 	vbar numberOfReplies;
 	colaxis label = "YouTube Comment Reply Counts" Fitpolicy = thin;
 run;
-*Two part data;
+* create variable needed for fitting a two-part model;
 data twopart;
 	set twopart;
 	P_u = 1;
@@ -123,13 +125,12 @@ data twopart;
 	P_m = .;
 	if P_u = 1 then P_m = likes;
 run;
-
-*export dataset for r;
+* export dataset for use in R;
 proc export data = twopart dbms = csv outfile = "C:\Users\mcraft\Desktop\CMN\comments.csv" replace;
 	putnames = yes;
 run;
 
-*****LIKES*****;
+*****model fitting for number of likes*****;
 title 'Starting Values for Two-part Parameters';
 proc genmod data = twopart;
 	class Subject;
@@ -142,7 +143,6 @@ proc glimmix data = twopart noclprint method = laplace;
 	model likes = sent_score / s dist = poisson;
 	random int / subject = Subject;
 run;
-
 title "Starting Values for the Random Effects Logistic Portion Only";
 proc nlmixed data = twopart method = gaus qpoints = 5 maxfunc = 3000
 maxiter = 10000 noad gconv = 0 absconv = 0;
@@ -160,7 +160,6 @@ maxiter = 10000 noad gconv = 0 absconv = 0;
 	random au ~ normal (0, vara) subject = Subject;
 	bounds vara >= 0;
 run;
-
 title "Starting Values for the Fixed Effects Logistic Portion Only";
 proc nlmixed data = twopart method = gaus qpoints = 5 maxfunc = 3000
 maxiter = 10000 noad gconv = 0 absconv = 0;
@@ -176,7 +175,6 @@ maxiter = 10000 noad gconv = 0 absconv = 0;
 	
 	model likes ~ general(LL1);
 run;
-
 title "Starting Values for the Poisson Portion Only";
 proc nlmixed data = twopart method = gaus qpoints = 5 maxfunc = 3000
 maxiter = 10000 noad gconv = 0 absconv = 0;
@@ -192,7 +190,6 @@ maxiter = 10000 noad gconv = 0 absconv = 0;
 	random bu ~ normal (0, varb) subject = Subject;
 	bounds varb >= 0;
 run;
-
 title "Two-part RANDOM Logistic and Poisson Model";
 proc nlmixed data = twopart noad method = gaus qpoints = 50 maxfunc = 3000 
 maxiter = 10000 gconv = 0 absconv = 0;
@@ -220,7 +217,6 @@ model likes ~ general(Loglik);
 random au bu ~ normal ([0,0],[vara, covab, varb]) subject = Subject;
 bounds vara >= 0, varb >= 0;
 run;
-
 title "Two-part FIXED Logistic and Poisson Model";
 proc nlmixed data = twopart noad method = gaus qpoints = 50 maxfunc = 3000 
 maxiter = 10000 gconv = 0 absconv = 0;
@@ -245,7 +241,6 @@ else if likes > 0 then Loglik = LL1+LL2;
 
 model likes ~ general(Loglik);
 run;
-
 title "Two-part RANDOM Logistic and Truncated Poisson Model";
 proc nlmixed data = twopart noad method = gaus qpoints = 50 maxfunc = 3000 
 maxiter = 10000 gconv = 0 absconv = 0;
@@ -276,7 +271,6 @@ model likes ~ general(Loglik);
 random au bu ~ normal ([0,0],[vara, covab, varb]) subject = Subject;
 bounds vara >= 0, varb >= 0;
 run;
-
 title "Two-part FIXED Logistic and Truncated Poisson Model";
 proc nlmixed data = twopart noad method = gaus qpoints = 50 maxfunc = 3000 
 maxiter = 10000 gconv = 0 absconv = 0;
@@ -304,7 +298,6 @@ else if likes > 0 then Loglik = LL1+LL2;
 
 model likes ~ general(Loglik);
 run;
-
 title1 "Two-part Random Poisson Model with LSM";
 proc nlmixed data = twopart method = gaus qpoints = 5 maxfunc = 3000 
 maxiter = 10000 noad gconv = 0 absconv = 0;
@@ -339,10 +332,7 @@ random au bu ~ normal ([0,0],[vara, covab, varb]) subject = Subject;
 run;
 *LSM does not converge;
 
-
-
-
-*****RESPONSES*****;
+*****model fitting for number of responses*****;
 title 'Starting Values for Two-part Parameters';
 proc genmod data = twopart;
 	class Subject;
