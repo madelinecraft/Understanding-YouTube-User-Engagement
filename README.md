@@ -1,4 +1,4 @@
-# YouTube-Project
+# Understanding YouTube User Engagement
 Summary:
 
 The goal of this project was to understand the relationship between the sentiment of YouTube video comments and the number of "likes" a comment receives. Comments and each comment's number of "likes" were scraped from YouTube and comments were analyzed for sentiment. The results of the analysis showed that the more positively sentimented a comment was, the more "likes" a comment received. 
