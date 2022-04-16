@@ -9,8 +9,8 @@ The implication of these findings is that positivity increases engagement. If a 
 
 Details of the Analysis:
 
-Python was used to access YouTube's API to scrape YouTube video comments and the number of "likes" a comment received. Python was also used to access IBM Watson's Natural Language Understanding tool, which analyzed each comment for sentiment. Both Python scripts are stored above. 
+Python was used to access YouTube's API to scrape YouTube video comments and the number of "likes" a comment received. Python was also used to access IBM Watson's Natural Language Understanding tool, which analyzed each comment for sentiment. Both Python scripts ("" and "") are stored above. 
 
-SAS was used to fit the statistical model of interest, and the SAS script is stored above. 
+SAS was used to fit the statistical model of interest, and the SAS script "" is stored above. 
 
 A Powerpoint file summarizes the project and is stored above.
